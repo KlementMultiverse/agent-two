@@ -22,13 +22,15 @@ from src.tools import internet_search
 
 # Define the 5 subagents as dictionaries.
 # Each gets spawned as an ephemeral agent when Lead calls task().
-# Model is inherited from the main agent (Claude Sonnet) unless overridden.
+# Subagents use Haiku (12x cheaper than Sonnet) — Lead stays on Sonnet for orchestration.
+SUBAGENT_MODEL = "anthropic:claude-haiku-4-5-20250929"
 
 researcher = {
     "name": "researcher",
     "description": "Researches existing solutions, frameworks, and patterns for agentic AI applications. Use this first to understand the landscape before designing.",
     "system_prompt": RESEARCHER_PROMPT,
     "tools": [internet_search],
+    "model": SUBAGENT_MODEL,
 }
 
 agent_designer = {
@@ -36,6 +38,7 @@ agent_designer = {
     "description": "Designs agents with roles, tools, system prompts, and model recommendations based on research findings.",
     "system_prompt": AGENT_DESIGNER_PROMPT,
     "tools": [],
+    "model": SUBAGENT_MODEL,
 }
 
 workflow_designer = {
@@ -43,6 +46,7 @@ workflow_designer = {
     "description": "Plans agent communication, data flow, execution order, retry logic, and termination conditions.",
     "system_prompt": WORKFLOW_DESIGNER_PROMPT,
     "tools": [],
+    "model": SUBAGENT_MODEL,
 }
 
 infra_planner = {
@@ -50,6 +54,7 @@ infra_planner = {
     "description": "Plans memory, evaluation criteria, tracing, deployment, and cost estimation for the system.",
     "system_prompt": INFRA_PLANNER_PROMPT,
     "tools": [],
+    "model": SUBAGENT_MODEL,
 }
 
 verifier = {
@@ -57,6 +62,7 @@ verifier = {
     "description": "Reviews the complete design for gaps, risks, and improvement suggestions. Returns APPROVED or NEEDS REVISION.",
     "system_prompt": VERIFIER_PROMPT,
     "tools": [],
+    "model": SUBAGENT_MODEL,
 }
 
 # All subagents in delegation order
@@ -67,6 +73,7 @@ subagents = [researcher, agent_designer, workflow_designer, infra_planner, verif
 # Subagents are ephemeral: born, do work, return report, die.
 lead_agent = create_deep_agent(
     model=MODEL,
+    name="lead",
     system_prompt=LEAD_PROMPT,
     subagents=subagents,
 )
