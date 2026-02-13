@@ -22,8 +22,8 @@ from src.tools import internet_search
 
 # Define the 5 subagents as dictionaries.
 # Each gets spawned as an ephemeral agent when Lead calls task().
-# Subagents use Haiku (12x cheaper than Sonnet) — Lead stays on Sonnet for orchestration.
-SUBAGENT_MODEL = "anthropic:claude-haiku-4-5-20251001"
+# All agents use GPT-4o-mini — $0.15/$0.60 per MTok, better structured output.
+SUBAGENT_MODEL = "openai:gpt-4o-mini"
 
 researcher = {
     "name": "researcher",
