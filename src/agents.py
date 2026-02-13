@@ -18,7 +18,7 @@ from src.prompts import (
     VERIFIER_PROMPT,
     WORKFLOW_DESIGNER_PROMPT,
 )
-from src.tools import internet_search
+from src.tools import internet_search, search_official_site
 
 # Define the 5 subagents as dictionaries.
 # Each gets spawned as an ephemeral agent when Lead calls task().
@@ -29,7 +29,7 @@ researcher = {
     "name": "researcher",
     "description": "Researches existing solutions, frameworks, and patterns for agentic AI applications. Use this first to understand the landscape before designing.",
     "system_prompt": RESEARCHER_PROMPT,
-    "tools": [internet_search],
+    "tools": [internet_search, search_official_site],
     "model": SUBAGENT_MODEL,
 }
 

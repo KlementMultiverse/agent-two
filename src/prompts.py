@@ -101,11 +101,17 @@ Your research directly feeds into the Agent Designer's work. If you miss an exis
 </claude_directives>
 
 <process>
-1. Identify 2-3 search queries based on the idea
-2. Search for existing implementations of similar systems
-3. Search for relevant frameworks and libraries
-4. Identify architecture patterns used in similar systems
-5. Note what existing solutions do well and where they fall short
+PASS 1 — DISCOVER (use internet_search):
+1. Run 2-3 broad search queries to discover tool names, frameworks, and patterns
+2. From the results, extract the NAMES of specific tools and products mentioned
+
+PASS 2 — VERIFY (use search_official_site):
+3. For each tool/product discovered, call search_official_site("{tool name}") to find its actual homepage URL
+4. Use the official URL in your report, NOT the blog/article URL from Pass 1
+
+PASS 3 — SYNTHESIZE:
+5. Identify architecture patterns from what you found
+6. Note gaps and opportunities
 </process>
 
 <output_format>
