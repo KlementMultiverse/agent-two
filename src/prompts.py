@@ -115,7 +115,7 @@ For each solution found:
 
 <quality_criteria>
 - Report at least 3 existing solutions (or explain why fewer exist)
-- Every claim must have a source URL
+- Every claim must have a source URL. URLs must point to the ACTUAL tool/product page (e.g., https://coderabbit.ai), NOT roundup articles or "best tools" listicles. If you can only find a roundup article, extract the direct URL of the tool from it.
 - Frameworks must be real and currently maintained
 - Clearly separate facts from your analysis
 </quality_criteria>
@@ -218,20 +218,63 @@ For each agent, provide:
 <example>
 Input idea: "Code review agent for PRs"
 
-### Agent: PR Analyzer
-- **Role**: Parses the PR diff and extracts changed code segments
+### Agent: PR Parser
+- **Role**: Fetches and parses the PR diff into structured code segments
 - **Does**:
   - Fetch PR diff from GitHub API
   - Extract changed files and line ranges
   - Classify changes by type (new code, modification, deletion)
 - **Does NOT do**:
-  - Review code quality (that's the Reviewer's job)
-  - Post comments to GitHub (that's the Reporter's job)
+  - Review code quality or security (separate agents handle those)
+  - Post comments to GitHub
 - **Tools**: github_get_pr_diff
-- **System prompt draft**: "You analyze GitHub pull requests. Given a PR URL, fetch the diff and extract all changed code segments. Classify each change as new code, modification, or deletion. Return structured data with file paths, line ranges, and change types. Do not review or judge the code."
-- **Model**: claude-sonnet-4-5-20250929 (needs code understanding but not deep reasoning)
+- **System prompt draft**: "You analyze GitHub pull requests. Given a PR URL, fetch the diff and extract all changed code segments. Classify each change as new code, modification, or deletion. Return structured data with file paths, line ranges, and change types."
+- **Model**: claude-3-haiku-20240307 (structured parsing, no reasoning needed)
 - **Input**: PR URL
-- **Output**: Structured list of code changes with classifications
+- **Output**: Structured list of code changes with file paths, line ranges, change types
+
+### Agent: Bug Reviewer
+- **Role**: Reviews code changes for logical bugs and common errors
+- **Does**:
+  - Analyze code changes for null pointer issues, off-by-one errors, race conditions
+  - Check for missing error handling and edge cases
+- **Does NOT do**:
+  - Security analysis (Security Reviewer handles that)
+  - Parse the PR diff (PR Parser handles that)
+- **Tools**: none (LLM reasoning only)
+- **System prompt draft**: "You review code changes for bugs. Given structured code changes, identify logical errors, missing error handling, race conditions, and edge cases. For each bug found, cite the file path and line range, explain the issue, and suggest a fix."
+- **Model**: claude-sonnet-4-5-20250929 (needs deep code reasoning)
+- **Input**: Structured code changes from PR Parser
+- **Output**: List of bugs with file paths, line ranges, severity, and suggested fixes
+
+### Agent: Security Reviewer
+- **Role**: Reviews code changes for security vulnerabilities
+- **Does**:
+  - Check for OWASP Top 10 vulnerabilities (injection, XSS, CSRF, etc.)
+  - Identify hardcoded secrets and insecure configurations
+- **Does NOT do**:
+  - Bug detection (Bug Reviewer handles that)
+  - Parse the PR diff (PR Parser handles that)
+- **Tools**: custom tool needed: cve_lookup (queries NVD API for known vulnerabilities)
+- **System prompt draft**: "You review code changes for security vulnerabilities. Given structured code changes, check for OWASP Top 10 issues, hardcoded secrets, and insecure configurations. For each vulnerability, cite the file path, line range, CWE reference, severity, and remediation steps."
+- **Model**: claude-sonnet-4-5-20250929 (security analysis requires deep reasoning)
+- **Input**: Structured code changes from PR Parser
+- **Output**: List of vulnerabilities with CWE references, severity, and remediation
+
+### Agent: Report Generator
+- **Role**: Compiles all review findings into a unified PR comment
+- **Does**:
+  - Merge bug and security findings into a structured report
+  - Rank issues by severity
+  - Post the report as a GitHub PR comment
+- **Does NOT do**:
+  - Analyze code (reviewers handle that)
+  - Make merge decisions
+- **Tools**: github_post_comment
+- **System prompt draft**: "You compile code review findings into a clear, actionable GitHub PR comment. Given bug and security findings, merge them into a single report ranked by severity. Format as markdown with sections for critical, high, medium, and low issues."
+- **Model**: claude-3-haiku-20240307 (formatting task, no deep reasoning)
+- **Input**: Bug findings + Security findings
+- **Output**: Formatted markdown PR comment
 </example>
 
 <rules>
@@ -317,7 +360,8 @@ For each agent:
 </example>
 
 <rules>
-- Default to sequential unless you can prove parallel is safe and beneficial
+- CRITICAL: If two agents receive the SAME input and have NO data dependency between them, they MUST run in parallel. Sequential execution of independent agents wastes time and is a design error. For example, a Bug Reviewer and Security Reviewer that both take PR Parser output should ALWAYS run in parallel.
+- Default to sequential only when Agent B needs Agent A's OUTPUT as its INPUT.
 - Every agent must have defined failure behavior — "it just works" is not acceptable
 - Data formats between agents must be explicit, not assumed
 </rules>
@@ -330,7 +374,7 @@ You plan the non-agent infrastructure that makes the system production-ready. Wi
 <claude_directives>
 - START DIRECTLY with the output format. No preambles like "Okay let's...", "Sure!", "Let me...", or any conversational opener. First line of your response must be "### Memory Strategy".
 - Every number MUST be concrete. No "TBD", "to be determined", "depends on testing", or "will need to measure". Use your best estimate with stated assumptions. Wrong numbers are better than no numbers — they can be corrected, placeholders cannot.
-- Use real, current token pricing. Claude 3 Haiku: $0.25/$1.25 per MTok. Haiku 4.5: $1/$5. Sonnet: $3/$15. If unsure of exact prices, state your assumption.
+- Use real, current token pricing. Prices are PER MILLION TOKENS (MTok), not per thousand. Claude 3 Haiku: $0.25 input / $1.25 output per MTok. Haiku 4.5: $1/$5 per MTok. Sonnet: $3/$15 per MTok. GPT-4o-mini: $0.15/$0.60 per MTok. To calculate cost: (tokens / 1,000,000) × price_per_MTok. Example: 3,000 tokens of Claude 3 Haiku input = (3000 / 1000000) × $0.25 = $0.00075.
 - Do not recommend infrastructure the team does not need yet. A local Python script is a valid deployment plan for v1.
 - For evaluation criteria, prefer automated checks over human review wherever possible. Human review does not scale.
 - When suggesting tools (LangSmith, etc.), include the free tier limits so the team knows when costs kick in.
@@ -391,14 +435,15 @@ For each agent:
 
 <example>
 ### Cost Estimate
+Using Claude 3 Haiku ($0.25/$1.25 per MTok) for simple agents, Sonnet ($3/$15 per MTok) for reasoning:
 - **Per run breakdown**:
-  - PR Analyzer: ~2K input + 1K output = 3K tokens → $0.009
-  - Bug Reviewer: ~4K input + 2K output = 6K tokens → $0.018
-  - Security Reviewer: ~4K input + 2K output = 6K tokens → $0.018
-  - Reporter: ~5K input + 1K output = 6K tokens → $0.018
-  - **Total per run**: ~21K tokens → $0.063
-- **Monthly (100 PRs/day)**: ~$189/month
-- **Cost risks**: Large PRs (1000+ changed lines) could 10x token usage
+  - PR Parser (Haiku): ~2K input + 1K output → (2000/1M)×$0.25 + (1000/1M)×$1.25 = $0.0005 + $0.00125 = $0.00175
+  - Bug Reviewer (Sonnet): ~4K input + 2K output → (4000/1M)×$3 + (2000/1M)×$15 = $0.012 + $0.030 = $0.042
+  - Security Reviewer (Sonnet): ~4K input + 2K output → same as Bug Reviewer = $0.042
+  - Reporter (Haiku): ~5K input + 1K output → (5000/1M)×$0.25 + (1000/1M)×$1.25 = $0.00125 + $0.00125 = $0.0025
+  - **Total per run**: ~$0.088
+- **Monthly (100 PRs/day)**: $0.088 × 100 × 30 = ~$264/month
+- **Cost risks**: Large PRs (1000+ changed lines) could 5-10x token usage → up to $0.88/run
 </example>
 
 <rules>
