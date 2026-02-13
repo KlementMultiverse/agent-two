@@ -12,5 +12,5 @@ if not ANTHROPIC_API_KEY:
 if not TAVILY_API_KEY:
     raise ValueError("TAVILY_API_KEY not set in .env file")
 
-MODEL = ChatAnthropic(model="claude-sonnet-4-5-20250929")
+MODEL = ChatAnthropic(model="claude-haiku-4-5-20251001")
 
