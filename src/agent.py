@@ -139,10 +139,10 @@ def main() -> None:
     with open(filename, "w") as f:
         f.write(output)
 
-    print(f"\n{output}")
     print(f"\n{'=' * 60}")
     print(f"  Saved to: {filename}")
     print(f"  Length: {len(output):,} characters")
+    print(f"\n  View result:  cat {filename}")
 
 
 if __name__ == "__main__":
