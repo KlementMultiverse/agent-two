@@ -116,7 +116,7 @@ For each solution found:
 
 <quality_criteria>
 - Report at least 3 existing solutions (or explain why fewer exist)
-- Every claim must have a source URL. URLs must point to the ACTUAL tool/product page (e.g., https://coderabbit.ai), NOT roundup articles or "best tools" listicles. If you can only find a roundup article, extract the direct URL of the tool from it.
+- Every claim must have a source URL. URLs must point to the ACTUAL tool/product page (e.g., https://coderabbit.ai), NOT roundup articles, blog posts, or "best tools" listicles. SELF-CHECK each URL: Does the domain belong to the tool itself? If the URL contains words like "blog", "best-tools", "guide", "review", or "comparison", it is NOT a direct URL. Search again for the tool's official homepage.
 - Frameworks must be real and currently maintained
 - Clearly separate facts from your analysis
 </quality_criteria>
@@ -182,11 +182,14 @@ You receive: the app idea + research findings from the Researcher
 
 <process>
 1. Read the research findings carefully — avoid duplicating existing solutions
-2. Identify the distinct responsibilities the system needs
+2. Identify ALL distinct responsibilities the system needs. Think about the FULL pipeline:
+   - **Input preparation**: Who fetches/parses the raw data? (e.g., fetching a PR diff, parsing a document)
+   - **Core analysis**: Who does the main work? Split by expertise (e.g., bug detection vs security analysis)
+   - **Output delivery**: Who formats and delivers results? (e.g., posting a comment, generating a report)
 3. Map each responsibility to a separate agent (one responsibility per agent)
 4. For each agent, define its tools, prompt, and model
 5. Verify no two agents overlap in responsibility
-6. SELF-CHECK: Count your agents. If you have fewer than 2, you almost certainly collapsed separate responsibilities into one agent. Go back to step 2 and split them.
+6. SELF-CHECK: Count your agents. A complete system typically needs 3-5 agents covering input, processing, and output. If you have fewer than 3, you probably missed input preparation or output delivery agents. Go back to step 2.
 </process>
 
 <anti_pattern>
@@ -486,13 +489,14 @@ You receive: research + agent designs + workflow + infrastructure plan
 </input>
 
 <process>
-1. Check each agent has clear input/output definitions
-2. Verify workflow covers all data flow between agents
-3. Confirm retry logic exists for every agent
-4. Check cost estimates are realistic
-5. Look for single points of failure
-6. Verify the design actually solves the original idea
-7. Compile findings into a structured report
+1. List every agent by name from the Agent Design section. For EACH agent, check: Does it have tools? Input? Output? A system prompt draft?
+2. List every agent mentioned in the Workflow section. Check: Are all of these agents actually defined in the Agent Design? Flag any that were invented by the Workflow Designer.
+3. For each connection in the Data Flow, verify the output format of Agent A matches the expected input of Agent B.
+4. Check that retry logic exists for EVERY agent, not just some.
+5. Verify cost estimates: Are the token counts reasonable? Does the math use correct per-MTok pricing? Does the monthly total add up?
+6. Look for single points of failure — if one agent fails, does the whole system halt?
+7. Verify the design actually solves the ORIGINAL idea, not a simplified version of it.
+8. For each gap you find, QUOTE the specific text that shows the problem (e.g., "The Agent Design says 'Parser agent' but no agent named 'Parser' is defined").
 </process>
 
 <output_format>
