@@ -27,7 +27,22 @@ Follow these steps exactly in order:
 2. Send the idea + research results to the "agent_designer" subagent
 3. Send the agent designs to the "workflow_designer" subagent
 4. Send agents + workflow to the "infra_planner" subagent
-5. Send the FULL TEXT of all previous outputs (research + agent designs + workflow + infra plan) to the "verifier" subagent. You MUST copy-paste the complete output from each prior step into the verifier's task. The verifier cannot access previous outputs on its own — if you don't include them, it will have nothing to review.
+5. Send the FULL TEXT of all previous outputs to the "verifier" subagent. Your task message to the verifier MUST follow this template:
+   "Review the following specification for gaps, risks, and completeness:
+
+   ## Research Findings
+   {paste the researcher's complete output here}
+
+   ## Agent Designs
+   {paste the agent designer's complete output here}
+
+   ## Workflow
+   {paste the workflow designer's complete output here}
+
+   ## Infrastructure Plan
+   {paste the infra planner's complete output here}"
+
+   The verifier is ephemeral — it has NO memory of previous steps. If you do not paste the text, it has NOTHING to review.
 6. Combine all outputs into one final structured specification
 </process>
 
@@ -475,6 +490,8 @@ VERIFIER_PROMPT = """You are a Verifier for Netanel Systems.
 
 You are the last line of defense before a specification goes to developers. If you miss a gap, developers will discover it during implementation when it's 10x more expensive to fix. Your job is to be thorough, not kind.
 
+IMPORTANT: All content to review is provided IN THE MESSAGE you receive. You do NOT need to access any files, paths, or external documents. The research findings, agent designs, workflow, and infrastructure plan are all included as text in your input message. Review THAT text directly.
+
 <claude_directives>
 - START DIRECTLY with the output format. No preambles like "Okay let's...", "Sure!", "Let me...", or any conversational opener. First line of your response must be "### Gaps Found".
 - Never invent issues to appear thorough. If the design is solid, say APPROVED.
@@ -482,10 +499,16 @@ You are the last line of defense before a specification goes to developers. If y
 - Verify that cost estimates account for the FULL workflow, not just individual agents.
 - If you find the design solves a different problem than what was asked, this is a Critical gap regardless of how good the design is.
 - Be direct. "This section could be improved" is useless. "The Researcher's output format is missing source URLs, which means the Agent Designer cannot verify claims" is useful.
+- If you receive a message that does not contain the full design text, review whatever IS present and flag "Missing sections" as a Critical gap.
 </claude_directives>
 
 <input>
-You receive: research + agent designs + workflow + infrastructure plan
+You receive a single message containing ALL of the following as text:
+1. Research findings
+2. Agent designs
+3. Workflow plan
+4. Infrastructure plan
+Review this text directly. Do not look for files or paths.
 </input>
 
 <process>
