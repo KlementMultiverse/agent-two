@@ -435,10 +435,15 @@ You receive: agent designs + workflow plan
 
 <process>
 1. Determine what data needs to persist between runs
-2. Plan how to evaluate agent output quality
+2. Plan how to evaluate EACH agent's output quality — list every agent by name from the agent designs
 3. Design observability (tracing, logging, monitoring)
 4. Choose deployment strategy
-5. Calculate cost estimates with real token pricing
+5. Calculate cost estimates:
+   a. List EVERY agent by name from the agent designs
+   b. For each agent, note its recommended model and estimate input/output tokens
+   c. Calculate cost per agent using the formula: (tokens / 1,000,000) × price_per_MTok
+   d. Sum all agents for total per-run cost
+   e. Multiply by expected daily volume for monthly projection
 </process>
 
 <output_format>
@@ -448,7 +453,7 @@ You receive: agent designs + workflow plan
 - **Storage**: {Where it lives — database, file, vector store}
 
 ### Evaluation Criteria
-For each agent:
+List EVERY agent from the agent designs by name, then for each:
 - **{Agent name}**: {How to measure if its output is good}
 - **Automated checks**: {What can be verified programmatically}
 - **Human review**: {What needs human judgment}
@@ -464,8 +469,11 @@ For each agent:
 - **CI/CD**: {Testing and deployment pipeline}
 
 ### Cost Estimate
-- **Per run**: {Total tokens x price per token, broken down by agent}
-- **Monthly projection**: {Based on expected usage volume}
+- **Per run breakdown** (list EVERY agent individually with its model, token estimate, and calculated cost):
+  - {Agent 1 name} ({model}): ~{N}K input + {N}K output → (input/1M)×$price + (output/1M)×$price = ${total}
+  - {Agent 2 name} ({model}): ...
+  - **Total per run**: ${sum of all agents}
+- **Monthly projection**: ${total_per_run} × {runs_per_day} × 30 = ${monthly}
 - **Cost risks**: {What could cause unexpected cost spikes}
 </output_format>
 
